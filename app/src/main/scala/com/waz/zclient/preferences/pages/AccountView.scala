@@ -57,6 +57,7 @@ trait AccountView {
   val onPasswordResetClick: EventStream[Unit]
   val onLogoutClick:        EventStream[Unit]
   val onDeleteClick:        EventStream[Unit]
+  val onBackupClick:        EventStream[Unit]
 
   def setName(name: String): Unit
   def setHandle(handle: String): Unit
@@ -83,6 +84,7 @@ class AccountViewImpl(context: Context, attrs: AttributeSet, style: Int) extends
   val resetPasswordButton = findById[TextButton](R.id.preferences_account_reset_pw)
   val logoutButton        = findById[TextButton](R.id.preferences_account_logout)
   val deleteAccountButton = findById[TextButton](R.id.preferences_account_delete)
+  val backupButton        = findById[TextButton](R.id.preferences_backup)
 
   override val onNameClick          = nameButton.onClickEvent.map(_ => ())
   override val onHandleClick        = handleButton.onClickEvent.map(_ => ())
@@ -93,6 +95,7 @@ class AccountViewImpl(context: Context, attrs: AttributeSet, style: Int) extends
   override val onPasswordResetClick = resetPasswordButton.onClickEvent.map(_ => ())
   override val onLogoutClick        = logoutButton.onClickEvent.map(_ => ())
   override val onDeleteClick        = deleteAccountButton.onClickEvent.map(_ => ())
+  override val onBackupClick        = backupButton.onClickEvent.map(_ => ())
 
   override def setName(name: String) = nameButton.setTitle(name)
 
@@ -109,6 +112,7 @@ class AccountViewImpl(context: Context, attrs: AttributeSet, style: Int) extends
   override def setDeleteAccountEnabled(enabled: Boolean) = deleteAccountButton.setVisible(enabled)
 
   override def setPhoneNumberEnabled(enabled: Boolean) = phoneButton.setVisible(enabled)
+
 }
 
 case class AccountBackStackKey(args: Bundle = new Bundle()) extends BackStackKey(args) {
@@ -292,6 +296,20 @@ class AccountViewController(view: AccountView)(implicit inj: Injector, ec: Event
           def onClick(dialog: DialogInterface, which: Int) =
             zms.head.map(_.users.deleteAccount())(Threading.Background)
         }, null)
+    }(Threading.Ui)
+  }
+
+  view.onBackupClick.onUi { _ =>
+    email.head.map {
+      case Some(_) => navigator.goTo(BackupExportKey())
+      case _ =>
+        showAlertDialog(context,
+          R.string.pref_account_backup_warning_title,
+          R.string.pref_account_backup_warning_message,
+          R.string.pref_account_backup_warning_ok,
+          new DialogInterface.OnClickListener() {
+            def onClick(dialog: DialogInterface, which: Int) = dialog.dismiss()
+          }, true)
     }(Threading.Ui)
   }
 
